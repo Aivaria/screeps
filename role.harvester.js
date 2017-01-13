@@ -1,35 +1,100 @@
+var helper = require('helper');
 var roleHarvester = {
 
     /** @param {Creep} creep **/
     run: function (creep) {
+        // this.getPath(creep);
 
-        if (creep.memory.upgrading && creep.carry.energy == 0) {
-            creep.memory.upgrading = false;
+        if (creep.memory.working && creep.carry.energy == 0) {
+            creep.memory.working = false;
         }
-        if (!creep.memory.upgrading && creep.carry.energy == creep.carryCapacity) {
-            creep.memory.upgrading = true;
+        if (!creep.memory.working && creep.carry.energy == creep.carryCapacity) {
+            console.log('search');
+            creep.memory.working = true;
+            this.getPath(creep);
         }
 
-        if (creep.memory.upgrading) {
-            var targets = creep.room.find(FIND_STRUCTURES, {
-                        filter: (structure) => {
-                        return (structure.structureType == STRUCTURE_EXTENSION || structure.structureType == STRUCTURE_SPAWN) &&
-                structure.energy < structure.energyCapacity;}
-        });
-            if (targets.length > 0) {
-                if (creep.transfer(targets[0], RESOURCE_ENERGY) == ERR_NOT_IN_RANGE) {
-                    creep.moveTo(targets[0]);
+        if (creep.memory.working) {
+
+            if(creep.memory.moving==true)
+            {
+                if(creep.memory.object==undefined || creep.memory.range<=1)
+                {
+                    creep.memory.moving=false;
                 }
+                creep.memory.range = creep.memory.range -1;
+                creep.moveByPath(creep.memory.path);
             }
             else
             {
-                require('role.builder').run(creep);
+                switch (creep.memory.lastfind)
+                {
+                    case 'spawner':
+                        var result = creep.transfer(Game.getObjectById(creep.memory.object), RESOURCE_ENERGY);
+                        if(result!=OK)
+                        {
+                            this.getPath(creep);
+                        }
+                        break;
+                    case 'tower':
+                        var result = creep.transfer(Game.getObjectById(creep.memory.object), RESOURCE_ENERGY);
+                        if(result!=OK)
+                        {
+                            this.getPath(creep);
+                        }
+                        break;
+                    case 'construction':
+                        var result = creep.build(Game.getObjectById(creep.memory.object));
+                        if(result!=OK)
+                        {
+                            this.getPath(creep);
+                        }
+                        break;
+                    case 'repair':
+                        var result = creep.repair(Game.getObjectById(creep.memory.object));
+                        if(Game.getObjectById(creep.memory.object).hits > Game.getObjectById(creep.memory.object).hitsMax*0.95)
+                        {
+                            this.getPath(creep);
+                        }
+                        if(result!=OK)
+                        {
+                            this.getPath(creep);
+                        }
+                        break;
+                    case 'controller':
+                        var result = creep.upgradeController(creep.room.controller);
+                        if(result!=OK)
+                        {
+                            this.getPath(creep);
+                        }
+                        break;
+                }
             }
         }
         else {
             var source = Game.getObjectById(creep.memory.sourceId);
             if (creep.harvest(source) == ERR_NOT_IN_RANGE) {
                 creep.moveTo(source);
+            }
+        }
+
+    },
+    getPath: function (creep) {
+        creep.memory.moving = true;
+        var result =helper.getTarget(creep, 'spawner');
+        if(result===false) {
+            var result =helper.getTarget(creep, 'tower');
+            if(result===false) {
+                result = helper.getTarget(creep, 'construction');
+                if (result === false) {
+                    result = helper.getTarget(creep, 'repair');
+                    if (result === false) {
+                        result = helper.getTarget(creep, 'controller');
+                        if (result === false) {
+                            console.log('error');
+                        }
+                    }
+                }
             }
         }
     }

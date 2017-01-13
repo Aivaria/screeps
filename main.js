@@ -1,15 +1,18 @@
 var roles = ['harvester', 'upgrader', 'miner', 'builder'];
 var roleConfig = {
-    'harvester': {'limit': 10, 'module': [WORK,CARRY,MOVE, MOVE], 'sourcelimits': [
-        {'limit':5, 'key':'018cee2eefb3d3efaf389448'}, {'limit':3, 'key':'88e34bb49203354dcd94d71b'},
-    ]},
-    'upgrader': {'limit': 0, 'module': [WORK,WORK, CARRY,CARRY, MOVE, MOVE]},
+    'harvester': {'limit': 3, 'module': [WORK,WORK,WORK,WORK,WORK,WORK,WORK,WORK,CARRY,CARRY,CARRY,CARRY,MOVE,MOVE,MOVE,MOVE,MOVE,MOVE], 'sourcelimits': [
+        {'source': '5836b6748b8b9619519eeb72', 'limit':5},
+    ]}, 
+    'upgrader': {'limit': 1, 'module': [WORK,WORK, CARRY,CARRY, MOVE, MOVE]},
     'builder': {'limit': 0, 'module': [WORK, CARRY, MOVE, MOVE]},
     'miner': {
         'limit': 0, 'module': [WORK, WORK, WORK, WORK, CARRY,CARRY, MOVE], 'sourcelimits': [
-            {'limit':1, 'key':'5836b6748b8b9619519eeb72'}, {'limit':1, 'key':'5836b6748b8b9619519eeb71'},
+            {'source': '5836b6748b8b9619519eeb72', 'limit':1 },
+            {'source': '5836b6748b8b9619519eeb71', 'limit':1 }
         ]
-    }
+    },
+    'tower':{},
+
 };
 var roleHandler = [];
 var counts = JSON.parse(JSON.stringify(roleConfig));
@@ -24,7 +27,7 @@ var runCount = true;
 
 module.exports.loop = function () {
     runCount = helper.clean();
-    
+
     if (runCount || true) {
         for (role in roles) {
             counts = JSON.parse(JSON.stringify(roleConfig))
@@ -38,9 +41,17 @@ module.exports.loop = function () {
             }
             if(counts[role].sourcelimits!==undefined)
             {
-                if(counts[role].sourcelimits[counts[role].sourceId].limit>0)
+                for(var source in counts[role].sourcelimits)
                 {
-                    counts[role].sourcelimits[counts[role].sourceId].limit=counts[role].sourcelimits[counts[role].sourceId].limit-1;
+                    if(counts[role].sourcelimits[source].limit>0 && counts[role].sourcelimits[source].source==Game.creeps[name].memory.sourceId)
+                    {
+                        counts[role].sourcelimits[source].limit=counts[role].sourcelimits[source].limit-1;
+
+                    }
+                }
+                if(counts[role].sourcelimits[counts[role].sourceId]>0)
+                {
+                    counts[role].sourcelimits[counts[role].sourceId]=counts[role].sourcelimits[counts[role].sourceId]-1;
                 }
             }
         }
@@ -56,8 +67,11 @@ module.exports.loop = function () {
             continue;
         }
         roleHandler[role].run(creep);
-
-
+    }
+    var towers = _.filter(Game.structures, (s) => s.structureType == STRUCTURE_TOWER);
+    for(var tower in towers)
+    {
+        roleHandler['tower'].run(towers[tower]);
     }
 
     spawnSleep--;

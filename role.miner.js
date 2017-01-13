@@ -22,7 +22,6 @@ var roleMiner = {
                 creep.moveTo(source);
             }
         }
-        STRUCTURE_CONTAINER
     }
 };
 module.exports = roleMiner;
